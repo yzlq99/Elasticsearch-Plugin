@@ -1,7 +1,10 @@
 # ElasticsearchPlugin
 elasticsearch plugin
 
+skip list
 
+参考：
+https://medium.com/tinder-engineering/how-we-improved-our-performance-using-elasticsearch-plugins-part-2-b051da2ee85b
 
 ## GO RoaringBitmap
 ```go
