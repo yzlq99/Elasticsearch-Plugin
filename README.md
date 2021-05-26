@@ -1,2 +1,2 @@
-# Elasticsearch-Plugin
+# ElasticsearchPlugin
 elasticsearch plugin
