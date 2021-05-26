@@ -1,7 +1,10 @@
 # ElasticsearchPlugin
 elasticsearch plugin
 
+skip list
 
+参考：
+https://medium.com/tinder-engineering/how-we-improved-our-performance-using-elasticsearch-plugins-part-2-b051da2ee85b
 
 ## GO RoaringBitmap
 ```go
@@ -93,25 +96,17 @@ GET institution/_search
   "query": {
     "function_score": {
       "query": {
-        "bool": {
-          "should": [
-            {
-              "match_phrase": {
-                "kw.founded_year": "2009"
-              }
-            }
-          ]
-        }
-    },
+        "match_all": {}
+      },
+      "boost_mode": "multiply", 
       "functions": [
         {
           "script_score": {
             "script": {
-              "lang": "skip_list",
               "params": {
-            "term": "aaa",
-                "field": "bbb"
-              },
+                "skip": "OjAAAAEAAAAAAAMAEAAAAAMABQBkAMgA"
+              }, 
+              "lang": "skip_list",
               "source": "pure_df"
             }
           }
@@ -120,6 +115,12 @@ GET institution/_search
     }
   }
 }
+
+
+DELETE institution
+
+
+GET institution
 
 
 PUT institution
@@ -151,8 +152,6 @@ PUT institution
   }
 }
 
-GET institution
-
 PUT institution/_doc/5
 {
         "kw.id": "5",
@@ -160,33 +159,10 @@ PUT institution/_doc/5
         "kw.founded_year": "2009"
 }
 
-PUT institution/_doc/4
-{
-        "kw.id": "4",
-        "kw.entity_type": 109006022,
-        "kw.founded_year": "2010"
-}
-
 PUT institution/_doc/3
 {
         "kw.id": "3",
         "kw.entity_type": 109006022,
-        "kw.founded_year": "2016"
-}
-
-
-PUT institution/_doc/2
-{
-        "kw.id": "2",
-        "kw.entity_type": 109006022,
-        "kw.founded_year": "2020"
-}
-
-
-PUT institution/_doc/1
-{
-        "kw.id": "5",
-        "kw.entity_type": 109006022,
-        "kw.founded_year": "2020"
+        "kw.founded_year": "2009"
 }
 ```
