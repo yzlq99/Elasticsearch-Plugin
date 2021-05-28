@@ -1,12 +1,25 @@
 # ElasticsearchPlugin
-elasticsearch plugin
 
-skip list
+一个 elasticsearch 的 script plugin。
+实现的逻辑是从参数中接收一个 base64 编码的 bitmap，然后判断文档 id 是否存在于 bitmap 中，如果存在则脚本打分为 0，否则打分为 1。配合 boost_mode 可以实现文档最终评分为 0 或者保持现状。
+另外配合 min_score 可以实现跳过分数为 0 文档。
+对应实际业务逻辑即看过的文档不再出现第二遍。
 
 参考：
 https://medium.com/tinder-engineering/how-we-improved-our-performance-using-elasticsearch-plugins-part-2-b051da2ee85b
 
+## 添加 Plugin 步骤
+1. ExpertScriptPlugin 类编码
+2. maven clean
+3. maven install
+4. 复制 tar 包到 es-docker 下
+5. 修改 plugin-descriptor.properties （如果改了类名或者 plugin 的名字）
+6. 压缩成 zip（zip 名字和 Dockerfile 中对应）
+7. 执行 docker build -f ./Dockerfile -t yinzl/elasticsearch .
+8. 重启 Elasticsearch
+
 ## GO RoaringBitmap
+
 ```go
 package main
 
@@ -19,19 +32,12 @@ import (
 
 func main() {
 
-	rb := roaring.BitmapOf(3, 4, 100, 200)
-	buf := new(bytes.Buffer)
-	_, err := rb.WriteTo(buf)
-	if err != nil {
-		fmt.Errorf("Failed writing")
-	}
-
-	fmt.Printf("%v\n", buf.Bytes())
-
+  rb := roaring.BitmapOf(3, 4, 100, 200)
+  
+  // 序列化为 base64 编码字符串
 	rb64, _ := rb.ToBase64()
 
 	fmt.Println(rb64)
-
 	newrb := roaring.New()
 	_, err = newrb.FromBase64(rb64)
 	if err != nil {
@@ -41,15 +47,13 @@ func main() {
 		fmt.Errorf("Cannot retrieve serialized version")
 	}
 
-	fmt.Println(rb.Contains(1))
-	fmt.Println(newrb.Contains(1))
-
 	fmt.Println(newrb.String())
 
 }
 ```
 
 ## Java RoaringBitmap
+
 ```java
 package org.test.skiplist;
 
@@ -71,8 +75,7 @@ public class BitMap {
 		String serializedstring = Base64.getEncoder().encodeToString(outbb.array());
 		System.out.println("serializedstring :\n" + serializedstring);
 
-		String a = "OjAAAAEAAAAAAAMAEAAAAAMABABkAMgA";
-		byte[] bt = Base64.getDecoder().decode(a);
+		byte[] bt = Base64.getDecoder().decode(serializedstring);
 
 		ByteBuffer buffer = ByteBuffer.wrap(bt);
 		RoaringBitmap ret = new RoaringBitmap();
@@ -104,10 +107,12 @@ GET institution/_search
           "script_score": {
             "script": {
               "params": {
-                "skip": "OjAAAAEAAAAAAAMAEAAAAAMABQBkAMgA"
+                "skip": "OjAAAAEAAAAAAAMAEAAAAAMABQBkAMgA",
+                // 这个字段名对应的字段一定要是 keyword 字段
+                "field_name": "kw.id"
               }, 
-              "lang": "skip_list",
-              "source": "pure_df"
+              "lang": "expert_scripts",
+              "source": "skip_list"
             }
           }
         }
@@ -116,13 +121,7 @@ GET institution/_search
   }
 }
 
-
-DELETE institution
-
-
-GET institution
-
-
+// mapping
 PUT institution
 {
   "mappings": {
@@ -155,6 +154,13 @@ PUT institution
 PUT institution/_doc/5
 {
         "kw.id": "5",
+        "kw.entity_type": 109006022,
+        "kw.founded_year": "2009"
+}
+
+PUT institution/_doc/4
+{
+        "kw.id": "4",
         "kw.entity_type": 109006022,
         "kw.founded_year": "2009"
 }

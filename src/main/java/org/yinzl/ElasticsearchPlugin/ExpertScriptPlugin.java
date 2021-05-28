@@ -24,7 +24,7 @@ import org.roaringbitmap.RoaringBitmap;
  * An example script plugin that adds a {@link ScriptEngine}
  * implementing expert scoring.
  */
-public class SkipList extends Plugin implements ScriptPlugin {
+public class ExpertScriptPlugin extends Plugin implements ScriptPlugin {
 
     @Override
     public ScriptEngine getScriptEngine(
@@ -40,7 +40,7 @@ public class SkipList extends Plugin implements ScriptPlugin {
     private static class MyExpertScriptEngine implements ScriptEngine {
         @Override
         public String getType() {
-            return "skip_list";
+            return "expert_scripts";
         }
 
         @Override
@@ -56,8 +56,8 @@ public class SkipList extends Plugin implements ScriptPlugin {
                         + context.name + "]");
             }
             // we use the script "source" as the script identifier
-            if ("pure_df".equals(scriptSource)) {
-                ScoreScript.Factory factory = new PureDfFactory();
+            if ("skip_list".equals(scriptSource)) {
+                ScoreScript.Factory factory = new SkipListFactory();
                 return context.factoryClazz.cast(factory);
             }
             throw new IllegalArgumentException("Unknown script name "
@@ -74,7 +74,7 @@ public class SkipList extends Plugin implements ScriptPlugin {
             return Set.of(ScoreScript.CONTEXT);
         }
 
-        private static class PureDfFactory implements ScoreScript.Factory,
+        private static class SkipListFactory implements ScoreScript.Factory,
                                                       ScriptFactory {
             @Override
             public boolean isResultDeterministic() {
@@ -88,25 +88,44 @@ public class SkipList extends Plugin implements ScriptPlugin {
                 Map<String, Object> params,
                 SearchLookup lookup
             ) {
-                return new PureDfLeafFactory(params, lookup);
+                return new SkipListLeafFactory(params, lookup);
             }
         }
 
-        private static class PureDfLeafFactory implements LeafFactory {
+        private static class SkipListLeafFactory implements LeafFactory {
             private final Map<String, Object> params;
             private final SearchLookup lookup;
-            private final String skip;
+            private RoaringBitmap bp;
+            private String fieldName;
             
-            private PureDfLeafFactory(
+            private SkipListLeafFactory(
                         Map<String, Object> params, SearchLookup lookup) {
                 if (params.containsKey("skip") == false) {
                     throw new IllegalArgumentException(
                             "Missing parameter [skip]");
                 }
+                if (params.containsKey("field_name") == false) {
+                    throw new IllegalArgumentException(
+                            "Missing parameter [field_name]");
+                }
 
+                
                 this.params = params;
                 this.lookup = lookup;
-                skip = params.get("skip").toString();
+                
+                String skip = params.get("skip").toString();
+    			byte[] bt = Base64.getDecoder().decode(skip);
+        		ByteBuffer buffer = ByteBuffer.wrap(bt);
+        		this.bp = new RoaringBitmap();
+    			try {
+					bp.deserialize(buffer);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					throw new IllegalArgumentException("bitmap deserialize failed: "+ e.getMessage());
+				}
+    			
+    			this.fieldName = params.get("field_name").toString();
             }
 
             @Override
@@ -122,35 +141,21 @@ public class SkipList extends Plugin implements ScriptPlugin {
                     @Override
                     public double execute(ExplanationHolder explanation) {
                     	
-                    	String id = this.getDoc().get("kw.id").get(0).toString();
-                    	System.out.println("kw.id: "+id);
-                    	
-                    	if (checkBitMap(id)) {
-                    		return 0.0d;
+                    	try {
+                    		String id = this.getDoc().get(fieldName).get(0).toString();
+                        	
+                        	if (bp.contains(Integer.parseInt(id))) {
+                        		return 0.0d;
+                        	}
+    						return 1d;
+                    	} catch(Exception e) {
+                    		return 1d;
                     	}
-						return 10d;
                         
                     }
                 };
             }
             
-            private boolean checkBitMap(String id) {
-            	
-        		try {
-        			byte[] bt = Base64.getDecoder().decode(skip);
-            		ByteBuffer buffer = ByteBuffer.wrap(bt);
-            		RoaringBitmap bp = new RoaringBitmap();
-        			bp.deserialize(buffer);
-        			
-        			if (bp.contains(Integer.parseInt(id))) {
-        				return true;
-        			}
-        		} catch (IOException ioe) {
-        			System.out.println(ioe.getMessage());
-        			return false;
-        		}
-            	return false;
-            }
         }
     }
     // end::expert_engine
