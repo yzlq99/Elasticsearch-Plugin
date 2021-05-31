@@ -1,126 +1,182 @@
 version: '3'
 services:
-    elasticsearch_n0:
-        image: yinzl/elasticsearch:latest
-        container_name: elasticsearch_n0
-        privileged: true
-        environment:
-            - cluster.name=elasticsearch-cluster
-            - node.name=node0
-            - node.master=true
-            - node.data=true
-            - bootstrap.memory_lock=true
-            - search.max_buckets=100000000
-            - http.cors.enabled=true
-            - http.cors.allow-origin=*
-            - cluster.initial_master_nodes=node0
-            - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
-            - "discovery.zen.ping.unicast.hosts=elasticsearch_n0,elasticsearch_n1,elasticsearch_n2"
-#- discovery.zen.ping.unicast.hosts=192.168.133.68,192.168.133.75,192.168.133.77
-            - "discovery.zen.minimum_master_nodes=2"
-            - discovery.zen.ping_timeout=120s
-            - client.transport.ping_timeout=60s
-        ulimits:
-            memlock:
-                soft: -1
-                hard: -1
-#        volumes:
-#            - /etc/localtime:/etc/localtime
-#            - ./data/base/es/data/node0:/usr/share/elasticsearch/data
-#            - ./logs/node0:/usr/share/elasticsearch/logs
-        ports:
-            - 9210:9200
-            - 9310:9300
-#        networks:
-#            - esnet
-    
-    elasticsearch_n1:
-        image: yinzl/elasticsearch:latest
-        container_name: elasticsearch_n1
-        privileged: true
-        environment:
-            - cluster.name=elasticsearch-cluster
-            - node.name=node1
-            - node.master=true
-            - node.data=true
-            - bootstrap.memory_lock=true
-            - search.max_buckets=100000000
-            - http.cors.enabled=true
-            - http.cors.allow-origin=*
-            - cluster.initial_master_nodes=node0
-            - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
-            - "discovery.zen.ping.unicast.hosts=elasticsearch_n0,elasticsearch_n1,elasticsearch_n2"
-            # 如果是拆分版，这里必须填写宿主机ip
-            #- discovery.zen.ping.unicast.hosts=192.168.133.68,192.168.133.75,192.168.133.77
-            - "discovery.zen.minimum_master_nodes=2"
-            - discovery.zen.ping_timeout=120s
-            - client.transport.ping_timeout=60s
-            # 如果是拆分版，这条配置必须加上，指定当前节点访问的ip
-            #- network.publish_host=192.168.133.75
-        ulimits:
-            memlock:
-                soft: -1
-                hard: -1
-#        volumes:
-#            - /etc/localtime:/etc/localtime
-#            - ./data/base/es/data/node1:/usr/share/elasticsearch/data
-#            - ./logs/node1:/usr/share/elasticsearch/logs
-        ports:
-            - 9211:9200
-            - 9311:9300
-#        networks:
-#            - esnet
-    
-    elasticsearch_n2:
-        image: yinzl/elasticsearch:latest
-        container_name: elasticsearch_n2
-        privileged: true
-        environment:
-            - cluster.name=elasticsearch-cluster
-            - node.name=node2
-            - node.master=true
-            - node.data=true
-            - bootstrap.memory_lock=true
-            - search.max_buckets=100000000
-            - http.cors.enabled=true
-            - http.cors.allow-origin=*
-            - cluster.initial_master_nodes=node0
-            - "ES_JAVA_OPTS=-Xms1024m -Xmx1024m"
-            - "discovery.zen.ping.unicast.hosts=elasticsearch_n0,elasticsearch_n1,elasticsearch_n2"
-            # 如果是拆分版，这里必须填写宿主机ip
-            #- discovery.zen.ping.unicast.hosts=192.168.133.68,192.168.133.75,192.168.133.77
-            - "discovery.zen.minimum_master_nodes=2"
-            - discovery.zen.ping_timeout=120s
-            - client.transport.ping_timeout=60s
-            # 如果是拆分版，这条配置必须加上，指定当前节点访问的ip
-            #- network.publish_host=192.168.133.77
-        ulimits:
-            memlock:
-                soft: -1
-                hard: -1
-#        volumes:
-#            - /etc/localtime:/etc/localtime
-#            - ./data/base/es/data/node2:/usr/share/elasticsearch/data
-#            - ./logs/node2:/usr/share/elasticsearch/logs
-        ports:
-            - 9212:9200
-            - 9312:9300
-#        networks:
-#            - esnet
-    
-    kibana:
-        image: kibana:7.12.1
-        container_name: kibana
-        ports:
-            - 5611:5601
-        volumes:
-#            - /etc/localtime:/etc/localtime
-            - ./config/kibana.yml:/usr/share/kibana/config/kibana.yml:rw
-        depends_on:
-            - elasticsearch_n0
-#        networks:
-#            - esnet
-#networks:
-#    esnet:
-#        external: true
+  es01:
+    image: momentumvalley/elasticsearch:7.3.2
+    container_name: es01
+    hostname: es01
+    environment:
+      - node.name=es01
+      - node.master=true
+      - node.data=true
+      - node.ingest=true
+      - discovery.seed_hosts=es02,es03
+      - cluster.name=es-cluster
+      - cluster.initial_master_nodes=es01
+      - node.max_local_storage_nodes=5
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms16G -Xmx16G"
+      - network.host=_eth0_
+      - http.cors.enabled=true
+      - http.cors.allow-origin=*
+      - xpack.security.enabled=true
+      - ELASTIC_PASSWORD=$ELASTIC_PASSWORD
+      - xpack.license.self_generated.type=trial
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=$CERTS_DIR/es01/es01.key
+      - xpack.security.http.ssl.certificate_authorities=$CERTS_DIR/ca/ca.crt
+      - xpack.security.http.ssl.certificate=$CERTS_DIR/es01/es01.crt
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.verification_mode=certificate 
+      - xpack.security.transport.ssl.certificate_authorities=$CERTS_DIR/ca/ca.crt
+      - xpack.security.transport.ssl.certificate=$CERTS_DIR/es01/es01.crt
+      - xpack.security.transport.ssl.key=$CERTS_DIR/es01/es01.key
+    ulimits:
+      nproc: 65535
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 819200
+        hard: 819200
+    cap_add:
+      - ALL
+    volumes:
+      - /data/es01_storage:/usr/share/elasticsearch/data
+      - /home/dev/Workspace/elasticsearch/analysis:/usr/share/elasticsearch/config/analysis
+      - certs:$CERTS_DIR
+    ports:
+      - 9200:9200
+      - 9300:9300
+    networks:
+      - esnet
+    restart: on-failure
 
+  es02:
+    image: momentumvalley/elasticsearch:7.3.2
+    container_name: es02
+    hostname: es02
+    environment:
+      - node.name=es02
+      - node.master=false
+      - node.data=true
+      - node.ingest=false
+      - cluster.initial_master_nodes=es01
+      - discovery.zen.ping.unicast.hosts=es01,es03
+      - node.max_local_storage_nodes=5
+      - cluster.name=es-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms16G -Xmx16G"
+      - network.host=_eth0_
+      - http.cors.enabled=true
+      - http.cors.allow-origin=*
+      - xpack.security.enabled=true
+      - ELASTIC_PASSWORD=$ELASTIC_PASSWORD
+      - xpack.license.self_generated.type=trial
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=$CERTS_DIR/es02/es02.key
+      - xpack.security.http.ssl.certificate_authorities=$CERTS_DIR/ca/ca.crt
+      - xpack.security.http.ssl.certificate=$CERTS_DIR/es02/es02.crt
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.security.transport.ssl.certificate_authorities=$CERTS_DIR/ca/ca.crt
+      - xpack.security.transport.ssl.certificate=$CERTS_DIR/es02/es02.crt
+      - xpack.security.transport.ssl.key=$CERTS_DIR/es02/es02.key
+    ulimits:
+      nproc: 65535
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 819200
+        hard: 819200
+    cap_add:
+      - ALL
+    ports:
+      - 9201:9200
+    volumes:
+      - /data/es02_storage:/usr/share/elasticsearch/data
+      - /home/dev/Workspace/elasticsearch/analysis:/usr/share/elasticsearch/config/analysis
+      - certs:$CERTS_DIR
+    depends_on:
+      - es01
+    networks:
+      - esnet
+    restart: on-failure
+
+  es03:
+    image: momentumvalley/elasticsearch:7.3.2
+    container_name: es03
+    hostname: es03
+    environment:
+      - node.name=es03
+      - node.master=false
+      - node.data=true
+      - node.ingest=false
+      - cluster.initial_master_nodes=es01
+      - discovery.zen.ping.unicast.hosts=es01,es02
+      - node.max_local_storage_nodes=5
+      - cluster.name=es-cluster
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms16G -Xmx16G"
+      - network.host=_eth0_
+      - http.cors.enabled=true
+      - http.cors.allow-origin=*
+      - xpack.security.enabled=true
+      - ELASTIC_PASSWORD=$ELASTIC_PASSWORD
+      - xpack.license.self_generated.type=trial
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=$CERTS_DIR/es03/es03.key
+      - xpack.security.http.ssl.certificate_authorities=$CERTS_DIR/ca/ca.crt
+      - xpack.security.http.ssl.certificate=$CERTS_DIR/es03/es03.crt
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.security.transport.ssl.certificate_authorities=$CERTS_DIR/ca/ca.crt
+      - xpack.security.transport.ssl.certificate=$CERTS_DIR/es03/es03.crt
+      - xpack.security.transport.ssl.key=$CERTS_DIR/es03/es03.key
+    ulimits:
+      nproc: 65535
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 819200
+        hard: 819200
+    cap_add:
+      - ALL
+    ports:
+      - 9202:9200
+    volumes:
+      - /data/es03_storage:/usr/share/elasticsearch/data
+      - /home/dev/Workspace/elasticsearch/analysis:/usr/share/elasticsearch/config/analysis
+      - certs:$CERTS_DIR
+    depends_on:
+      - es01
+    networks:
+      - esnet
+    restart: on-failure
+
+  kibana:
+    container_name: kibana01
+    hostname: kibana01
+    image: kibana:7.3.2
+    environment:
+      - elasticsearch.ssl.certificateAuthorities=$CERTS_DIR/ca/ca.crt"
+      - elasticsearch.ssl.certificate=$CERTS_DIR/es01/es01.crt
+      - elasticsearch.ssl.key=$CERTS_DIR/es01/es01.key
+    volumes:
+      - certs:$CERTS_DIR
+      - ./kibana.yml:/usr/share/kibana/config/kibana.yml
+    ports:
+      - 5601:5601
+    depends_on:
+      - es01
+      - es02
+      - es03
+    networks:
+      - esnet
+
+volumes:
+  certs:
+
+networks:
+  esnet:
