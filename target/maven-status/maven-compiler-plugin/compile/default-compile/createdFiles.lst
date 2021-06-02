@@ -1,7 +1,12 @@
 org/yinzl/ElasticsearchPlugin/ExpertScriptPlugin$MyExpertScriptEngine$SkipListLeafFactory.class
-org/yinzl/ElasticsearchPlugin/ExpertScriptPlugin.class
 org/yinzl/ElasticsearchPlugin/resthandler/ExampleCatAction.class
+org/yinzl/ElasticsearchPlugin/rescore/ExampleRescoreBuilder$ExampleRescorer.class
+org/yinzl/ElasticsearchPlugin/resthandler/ExampleRestHandlerPlugin.class
+org/yinzl/mysql/Connector.class
+org/yinzl/ElasticsearchPlugin/rescore/ExampleRescoreBuilder$ExampleRescoreContext.class
+org/yinzl/ElasticsearchPlugin/rescore/ExampleRescorePlugin.class
+org/yinzl/ElasticsearchPlugin/ExpertScriptPlugin.class
 org/yinzl/ElasticsearchPlugin/ExpertScriptPlugin$MyExpertScriptEngine$SkipListLeafFactory$1.class
 org/yinzl/ElasticsearchPlugin/ExpertScriptPlugin$MyExpertScriptEngine$SkipListFactory.class
-org/yinzl/ElasticsearchPlugin/resthandler/ExampleRestHandlerPlugin.class
 org/yinzl/ElasticsearchPlugin/ExpertScriptPlugin$MyExpertScriptEngine.class
+org/yinzl/ElasticsearchPlugin/rescore/ExampleRescoreBuilder.class
